@@ -158,7 +158,7 @@ browser.storage.sync.get(defaultOptions).then(options => {
     var id = tabs[0].id;
     var url = tabs[0].url;
     browser.tabs.executeScript(id, {
-        file: "/browser-polyfill.min.js"
+        file: "/browser-polyfill.js"
     })
     .then(() => {
         return browser.tabs.executeScript(id, {

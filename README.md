@@ -27,9 +27,15 @@ More information:  https://vinzent03.github.io/obsidian-advanced-uri/
 
 # External Libraries
 It uses the following libraries:
-- [Readability.js](https://github.com/mozilla/readability) by Mozilla in version from commit [1fde3ac626bc4c2e5e54daa57c57d48b7ed9c574](https://github.com/mozilla/readability/commit/1fde3ac626bc4c2e5e54daa57c57d48b7ed9c574). This library is also used for the Firefox Reader View and it simplifies the page so that only the important parts are clipped. (Licensed under Apache License Version 2.0)
-- [Turndown](https://github.com/mixmark-io/turndown) by Dom Christie in version 7.1.1 is used to convert the simplified HTML (from Readability.js) into markdown. (Licensed under MIT License)
-- [Moment.js](https://momentjs.com) version 2.29.4 used to format dates in template variables
+
+| Library | Version | Usage |
+| ------- | ------- | ----- |
+| [Readability.js](https://github.com/mozilla/readability) | [0.4.4](https://unpkg.com/browse/@mozilla/readability@0.4.4/Readability.js) | This library is also used for the [Firefox Reader View](https://support.mozilla.org/kb/firefox-reader-view-clutter-free-web-pages) and it simplifies the page so that only the important parts are clipped. |
+| [Turndown](https://github.com/mixmark-io/turndown) | [7.1.2](https://unpkg.com/browse/turndown@7.1.2/dist/turndown.js) | Used to convert HTML into Markdown |
+| [turndown-plugin-gfm](https://github.com/mixmark-io/turndown-plugin-gfm) | [1.0.2](https://unpkg.com/browse/turndown-plugin-gfm@1.0.2/dist/turndown-plugin-gfm.js) | A plugin for Turndown which adds GitHub Flavored Markdown extensions (e.g. strikethrough, tables, task list items). |
+| [Moment.js](https://momentjs.com) | [2.29.4](https://unpkg.com/browse/moment@2.29.4/moment.js) | Used to format dates in template variables. |
+| [Codemirror](https://github.com/codemirror/codemirror5) | [5.65.16](https://cdnjs.com/libraries/codemirror/5.65.16) | CodeMirror is a source code editor used for displaying and editing the converted markdown before downloading. |
+| [WebExtension `browser` API Polyfill](https://github.com/mozilla/webextension-polyfill) | [0.10.0](https://unpkg.com/browse/webextension-polyfill@0.10.0/dist/browser-polyfill.js) | Used to help bridge the api gap between browsers and develop for Firefox and Chrome (etc.) simultaniously. |
 
 # Permissions
 - Data on all sites: used to enable "Download All Tabs" functionality - no other data is captured or sent online
