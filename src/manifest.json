@@ -1,7 +1,7 @@
 {
-  "manifest_version": 2,
+  "manifest_version": 3,
   "name": "MarkDownload - Markdown Web Clipper",
-  "version": "3.3.0",
+  "version": "4.0.0.1",
   "author": "Gordon Pedsersen",
   "description": "This extension works like a web clipper, but it downloads articles in markdown format.",
   "icons": {
@@ -13,14 +13,31 @@
     "512": "icons/favicon-512x512.png"
   },
   "permissions": [
-    "<all_urls>",
     "activeTab",
     "downloads",
     "storage",
     "contextMenus",
-    "clipboardWrite"
+    "clipboardWrite",
+    "scripting",
+    "sidePanel"
   ],
-  "browser_action": {
+  "host_permissions": [
+    "*://*/*"
+  ],
+  "side_panel": {
+    "default_path": "popup/popup.html"
+  },
+  "sidebar_action": {
+    "default_title": "MarkDownload",
+    "default_panel": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/favicon-16x16.png",
+      "32": "icons/favicon-32x32.png",
+      "48": "icons/favicon-48x48.png",
+      "128": "icons/appicon-128x128.png"
+    }
+  },
+  "action": {
     "default_title": "MarkDownload",
     "default_popup": "popup/popup.html",
     "default_icon": {
@@ -30,23 +47,8 @@
       "128": "icons/appicon-128x128.png"
     }
   },
-  "background": {
-    "scripts": [
-      "browser-polyfill.js",
-      "background/apache-mime-types.js",
-      "background/moment.js",
-      "background/turndown.js",
-      "background/turndown-plugin-gfm.js",
-      "/background/Readability.js",
-      "shared/context-menus.js",
-      "shared/default-options.js",
-      "background/background.js"
-    ]
-  },
   "options_ui": {
     "page": "options/options.html",
-    "browser_style": false,
-    "chrome_style": false,
     "open_in_tab": false
   },
   "commands": {

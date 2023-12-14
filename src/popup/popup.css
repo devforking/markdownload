@@ -54,8 +54,8 @@
 }
 
 body {
-    width: 350px;
-    height: 500px;
+    min-width: 350px;
+    min-height: 500px;
     border-radius: 0.5em;
     overflow: hidden;
     font-family: sans-serif;
@@ -90,11 +90,16 @@ body {
     border-right: 2px solid transparent;
     animation: spinner .6s linear infinite;
 }
+/* 
+#container {
+    height: 100%;
+    width: 100%;
+} */
 
 .CodeMirror {
     border: none;
     padding: 0.5em;
-    flex: 1;
+    flex: 1 auto;
 }
 
 input#title {
@@ -103,13 +108,18 @@ input#title {
     background-color: var(--bg);
     border: 1px solid var(--border);
     font-size: 1.01em;
+    flex:0;
 }
 
 #container {
     width: 100%;
     height: 100%;
+    left: 0;
+    position: fixed;
+    top: 0;
     display: none;
     flex-direction: column;
+    overflow: hidden;
 }
 .row {
     flex-direction: row;
@@ -126,6 +136,7 @@ a.button {
     line-height: 1em;
     border: 1px solid var(--bg);
     border-collapse: collapse;
+    flex:0
 }
 
 #options {
