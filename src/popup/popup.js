@@ -42,22 +42,130 @@ function notify(message) {
 
 // ----------------------------------------------------------------
 
+const downloadListener = (id, url) => {
+  const self = (delta) => {
+    if (delta.id === id && delta.state && delta.state.current == "complete") {
+      // detatch this listener
+      browser.downloads.onChanged.removeListener(self);
+      //release the url for the blob
+      URL.revokeObjectURL(url);
+    }
+  }
+  return self;
+}
+
+const downloadsApi = async (state) => {
+  // create the object url with markdown data as a blob
+  const url = URL.createObjectURL(new Blob([state.markdown], {
+    type: "text/markdown;charset=utf-8"
+  }))
+
+  try {
+    // start the download
+    console.log(state)
+    const id = await browser.downloads.download({
+      url: url,
+      filename: state.mdClipsFolder + state.title + ".md",
+      saveAs: state.options.saveAs
+    })
+
+    // add a listener for the download completion
+    browser.downloads.onChanged.addListener(downloadListener(id, url))
+
+    // download images (if enabled)
+    if (state.options.downloadImages) {
+      // get the relative path of the markdown file (if any) for image path
+      const destPath = state.mdClipsFolder + state.title.substring(0, state.title.lastIndexOf('/'));
+      if(destPath && !destPath.endsWith('/')) destPath += '/';
+      Object.entries(state.imageList).forEach(async ([src, filename]) => {
+        // start the download of the image
+        const imgId = await browser.downloads.download({
+          url: src,
+          // set a destination path (relative to md file)
+          filename: destPath ? destPath + filename : filename,
+          saveAs: false
+        })
+        // add a listener (so we can release the blob url)
+        browser.downloads.onChanged.addListener(downloadListener(imgId, src));
+      });
+    }
+
+  }
+  catch (err) {
+    console.error("Download failed", err)
+  }
+}
+
+const downloadFromContentLink = async (state) => {
+  // create the object url with markdown data as a blob
+  const url = URL.createObjectURL(new Blob([state.markdown], {
+    type: "text/markdown;charset=utf-8"
+  }))
+
+  const mdlink = document.createElement('a')
+  mdlink.download = state.mdClipsFolder/*.replaceAll('/','_')*/ + state.title/*.replaceAll('/','_')*/ + ".md"
+  mdlink.href = url
+  mdlink.click()
+
+  // download images (if enabled)
+  if (state.options.downloadImages) {
+    // get the relative path of the markdown file (if any) for image path
+    let destPath = state.mdClipsFolder //+ state.title.substring(0, state.title.lastIndexOf('/'));
+    if(destPath && !destPath.endsWith('/')) destPath += '/';
+    // TODO: There's still something funny with the way image paths are url encoded
+    // destPath = destPath.replaceAll('/','_')
+    console.log(destPath)
+    Object.entries(state.imageList).forEach(async ([src, filename]) => {
+      const imglink = document.createElement('a')
+      imglink.download = destPath ? destPath + filename : filename
+      imglink.href = src
+      imglink.click()
+    });
+  }
+}
+
+const downloadFiles = async (state) => {
+  // ensure trailing slash on the download folder
+  if(state.mdClipsFolder && !state.mdClipsFolder.endsWith('/')) state.mdClipsFolder += '/'
+
+  // download via the downloads API
+  if (state.options.downloadMode == 'downloadsApi' && browser.downloads) downloadsApi(state)
+  // otherwise via content links
+  else downloadFromContentLink(state)
+}
+
 // event handler for download button
 async function download(e) {
-  e.preventDefault();
-  await sendDownloadMessage(cm.getValue());
-  window.close();
+  e.preventDefault()
+  const markdown = state.cm.getValue()
+  await downloadFiles({ ...state, markdown, title: document.getElementById("title").value })
+  // window.close()
 }
 
 // event handler for download selected button
 async function downloadSelection(e) {
-  e.preventDefault();
-  if (cm.somethingSelected()) {
-    await sendDownloadMessage(cm.getSelection());
+  e.preventDefault()
+  if (state.cm.somethingSelected()) {
+    const markdown = state.cm.getSelection()
+    await downloadFiles({ ...state, markdown, title: document.getElementById("title").value })
+    // window.close()
   }
 }
 
 // ----------------------------------------------------------------
+
+// some state variables to hold onto while the popup is open
+const state = {
+  options: defaultOptions,
+  cm: null,
+  tab: null,
+  dom: null,
+  selection: null,
+  article: null,
+  markdown: null,
+  imageList: null,
+  mdClipsFolder: null
+}
 
 // all the stuff that should happen when the popup is loaded (i.e. the button is clicked)
 const init = async () => {
@@ -66,12 +174,12 @@ const init = async () => {
 
   // set up CodeMirror
   const darkMode = window.matchMedia('(prefers-color-scheme: dark)').matches
-  const cm = CodeMirror.fromTextArea(document.getElementById("md"), {
+  state.cm = CodeMirror.fromTextArea(document.getElementById("md"), {
     theme: darkMode ? "xq-dark" : "xq-light",
     mode: "markdown",
     lineWrapping: true
   })
-  cm.on("cursorActivity", (cm) => {
+  state.cm.on("cursorActivity", (cm) => {
     const somethingSelected = cm.somethingSelected()
     var a = document.getElementById("downloadSelection")
 
@@ -80,38 +188,26 @@ const init = async () => {
   })
 
   // get and check the options
-  const options = await getOptions()
-  checkInitialSettings(options)
+  state.options = await getOptions()
+  checkInitialSettings()
   
   // add event listeners for the buttons
   document.getElementById("download").addEventListener("click", download)
   document.getElementById("downloadSelection").addEventListener("click", downloadSelection)
-  document.getElementById("selected").addEventListener("click", (e) => {
-    e.preventDefault()
-    toggleClipSelection(options)
-  })
-  document.getElementById("document").addEventListener("click", (e) => {
-    e.preventDefault()
-    toggleClipSelection(options)
-  })
-  document.getElementById("includeTemplate").addEventListener("click", (e) => {
-    e.preventDefault()
-    toggleIncludeTemplate(options)
-  })
-  document.getElementById("downloadImages").addEventListener("click", (e) => {
-    e.preventDefault()
-    toggleDownloadImages(options)
-  })
+  document.getElementById("selected").addEventListener("click", toggleClipSelection)
+  document.getElementById("document").addEventListener("click", toggleClipSelection)
+  document.getElementById("includeTemplate").addEventListener("click",toggleIncludeTemplate)
+  document.getElementById("downloadImages").addEventListener("click", toggleDownloadImages)
 
-  await clipSite(cm, options)
+  await clipSite()
 }
 
 // the function that does the majority of the heavy lifting
-const clipSite = async (cm, options) => {
+const clipSite = async () => {
   // get the html content of the current tab
   const tabs = await browser.tabs.query({ currentWindow: true, active: true })
-  var id = tabs[0].id;
-  var url = tabs[0].url;
+  state.tab = tabs[0]
+  var id = state.tab.id
   const contentResult = await browser.scripting.executeScript({ 
     target: { tabId: id, allFrames: true },
     files: ["/contentScript/pageContext.js", "/contentScript/getSelectionAndDom.js"]
@@ -123,33 +219,39 @@ const clipSite = async (cm, options) => {
     return showError("Unable to get html from content script")
   }
 
+  state.dom = contentResult[0].result.dom
+  state.selection = contentResult[0].result.selection
+
   // if we have a selection, show the slection option
-  showOrHideClipOption(contentResult[0].result.selection)
+  showOrHideClipOption(state.selection)
 
   // use Readability to trim down the article and extract metadata
-  const article = await getArticleFromDom(contentResult[0].result.dom)
-  console.log(article)
+  state.article = await getArticleFromDom(state.dom)
+  console.log(state.article)
 
   // convert the article to markdown
-  const { markdown, imageList } = await convertArticleToMarkdown(article)
+  const { markdown, imageList } = await convertArticleToMarkdown(state.article)
+  state.markdown = markdown
+  state.imageList = imageList
 
   // format the title
-  article.title = await formatTitle(article)
+  state.article.title = await formatTitle(state.article)
 
   // format the mdClipsFolder
-  const mdClipsFolder = await formatMdClipsFolder(article)
+  state.mdClipsFolder = await formatMdClipsFolder(state.article)
 
   // set the values from the message
   //document.getElementById("md").value = message.markdown;
-  cm.setValue(markdown);
-  document.getElementById("title").value = article.title
+  state.cm.setValue(state.markdown);
+  document.getElementById("title").value = state.article.title
   
   // show the hidden elements
   document.getElementById("container").style.display = 'flex'
   document.getElementById("spinner").style.display = 'none'
-    // focus the download button
+  // focus the download button
   document.getElementById("download").focus()
-  cm.refresh()
+  state.cm.refresh()
+  console.log("state", state)
 }
 
 // ----------------------------------------------------------------
@@ -159,49 +261,52 @@ function showError(err) {
   // show the hidden elements
   document.getElementById("container").style.display = 'flex'
   document.getElementById("spinner").style.display = 'none'
-  cm.setValue(`Error clipping the page\n\n${err}`)
+  state.cm.setValue(`Error clipping the page\n\n${err}`)
 }
 
 // check the checkboxes that need to be checked
-const checkInitialSettings = options => {
-  if (options.includeTemplate)
+const checkInitialSettings = () => {
+  if (state.options.includeTemplate)
     document.querySelector("#includeTemplate").classList.add("checked")
 
-  if (options.downloadImages)
+  if (state.options.downloadImages)
     document.querySelector("#downloadImages").classList.add("checked")
 
-  if (options.clipSelection)
+  if (state.options.clipSelection)
     document.querySelector("#selected").classList.add("checked")
   else
     document.querySelector("#document").classList.add("checked")
 }
 
-const toggleClipSelection = options => {
-  options.clipSelection = !options.clipSelection
+const toggleClipSelection = (e) => {
+  if(e) e.preventDefault()
+  state.options.clipSelection = !state.options.clipSelection
   document.querySelector("#selected").classList.toggle("checked")
   document.querySelector("#document").classList.toggle("checked")
-  browser.storage.sync.set(options).then(() => clipSite()).catch((error) => console.error(error))
+  browser.storage.sync.set(state.options).then(() => clipSite()).catch((error) => console.error(error))
 }
 
-const toggleIncludeTemplate = options => {
-  options.includeTemplate = !options.includeTemplate
+const toggleIncludeTemplate = (e) => {
+  if(e) e.preventDefault()
+  state.options.includeTemplate = !state.options.includeTemplate
   document.querySelector("#includeTemplate").classList.toggle("checked")
-  browser.storage.sync.set(options).then(() => {
-    browser.contextMenus.update("toggle-includeTemplate", { checked: options.includeTemplate })
+  browser.storage.sync.set(state.options).then(() => {
+    browser.contextMenus.update("toggle-includeTemplate", { checked: state.options.includeTemplate })
     try {
-      browser.contextMenus.update("tabtoggle-includeTemplate", { checked: options.includeTemplate })
+      browser.contextMenus.update("tabtoggle-includeTemplate", { checked: state.options.includeTemplate })
     } catch { }
     return clipSite()
   }).catch((error) => console.error(error))
 }
 
-const toggleDownloadImages = options => {
-  options.downloadImages = !options.downloadImages
+const toggleDownloadImages = (e) => {
+  if(e) e.preventDefault()
+  state.options.downloadImages = !state.options.downloadImages
   document.querySelector("#downloadImages").classList.toggle("checked")
-  browser.storage.sync.set(options).then(() => {
-    browser.contextMenus.update("toggle-downloadImages", { checked: options.downloadImages })
+  browser.storage.sync.set(state.options).then(() => {
+    browser.contextMenus.update("toggle-downloadImages", { checked: state.options.downloadImages })
     try {
-      browser.contextMenus.update("tabtoggle-downloadImages", { checked: options.downloadImages })
+      browser.contextMenus.update("tabtoggle-downloadImages", { checked: state.options.downloadImages })
     } catch { }
   }).catch((error) => console.error(error))
 }

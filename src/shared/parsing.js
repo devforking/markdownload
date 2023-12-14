@@ -164,16 +164,20 @@ function turndown(content, options, article) {
               imageFilename = parts.join('.');
             }
             // add it to the list of images to download later
+            if(options.downloadMode !== 'downloadsApi') imageFilename = imageFilename.replaceAll('/', '_')
             imageList[src] = imageFilename;
           }
           // check if we're doing an obsidian style link
           const obsidianLink = options.imageStyle.startsWith("obsidian");
           // figure out the (local) src of the image
-          const localSrc = options.imageStyle === 'obsidian-nofolder'
+          let localSrc = options.imageStyle === 'obsidian-nofolder'
             // if using "nofolder" then we just need the filename, no folder
             ? imageFilename.substring(imageFilename.lastIndexOf('/') + 1)
             // otherwise we may need to modify the filename to uri encode parts for a pure markdown link
-            : imageFilename.split('/').map(s => obsidianLink ? s : encodeURI(s)).join('/')
+            : imageFilename//.split('/').map(s => obsidianLink ? s : encodeURI(s)).join('/')
+
+          // also, if we're not using the downloads API, then folders won't actually work, so replace '/' with '_'
+          if(options.downloadMode !== 'downloadsApi') localSrc = localSrc.replaceAll('/', '_')
           
           // set the new src attribute to be the local filename
           if(options.imageStyle != 'originalSource' && options.imageStyle != 'base64') node.setAttribute('src', localSrc);
@@ -451,7 +455,7 @@ async function convertArticleToMarkdown(article, downloadImages = null) {
     .split('/').map(s=>generateValidFileName(s, options.disallowedChars)).join('/');
 
   let result = turndown(article.content, options, article);
-  if (options.downloadImages && options.downloadMode == 'downloadsApi') {
+  if (options.downloadImages /*&& options.downloadMode == 'downloadsApi'*/) {
     // pre-download the images
     result = await preDownloadImages(result.imageList, result.markdown);
   }
@@ -621,17 +625,17 @@ async function downloadMarkdown(markdown, title, tabId, imageList = {}, mdClipsF
   }
 }
 
-function downloadListener(id, url) {
-  const self = (delta) => {
-    if (delta.id === id && delta.state && delta.state.current == "complete") {
-      // detatch this listener
-      browser.downloads.onChanged.removeListener(self);
-      //release the url for the blob
-      URL.revokeObjectURL(url);
-    }
-  }
-  return self;
-}
+// function downloadListener(id, url) {
+//   const self = (delta) => {
+//     if (delta.id === id && delta.state && delta.state.current == "complete") {
+//       // detatch this listener
+//       browser.downloads.onChanged.removeListener(self);
+//       //release the url for the blob
+//       URL.revokeObjectURL(url);
+//     }
+//   }
+//   return self;
+// }
 
 function base64EncodeUnicode(str) {
   // Firstly, escape the string using encodeURIComponent to get the UTF-8 encoding of the characters, 

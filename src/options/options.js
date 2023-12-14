@@ -102,7 +102,7 @@ const setCurrentChoice = result => {
         document.querySelector('#downloadMode p').innerText = "The Downloas API is unavailable in this browser."
     }
 
-    const downloadImages = options.downloadImages && options.downloadMode == 'downloadsApi';
+    const downloadImages = options.downloadImages //&& options.downloadMode == 'downloadsApi';
 
     if (!downloadImages && (options.imageStyle == 'markdown' || options.imageStyle.startsWith('obsidian'))) {
         options.imageStyle = 'originalSource';
@@ -163,7 +163,7 @@ const show = (el, show) => {
 
 const refereshElements = () => {
     document.getElementById("downloadModeGroup").querySelectorAll('.radio-container,.checkbox-container,.textbox-container').forEach(container => {
-        show(container, options.downloadMode == 'downloadsApi')
+        show(container, true/*options.downloadMode == 'downloadsApi'*/)
     });
 
     // document.getElementById("obsidianUriGroup").querySelectorAll('.radio-container,.checkbox-container,.textbox-container').forEach(container => {
@@ -177,7 +177,7 @@ const refereshElements = () => {
 
     show(document.getElementById("fence"), (options.codeBlockStyle == "fenced"));
 
-    const downloadImages = options.downloadImages && options.downloadMode == 'downloadsApi';
+    const downloadImages = options.downloadImages //&& options.downloadMode == 'downloadsApi';
 
     show(document.getElementById("imagePrefix"), downloadImages);
 
