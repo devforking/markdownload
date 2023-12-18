@@ -176,7 +176,7 @@ const init = async () => {
   const darkMode = window.matchMedia('(prefers-color-scheme: dark)').matches
   state.cm = CodeMirror.fromTextArea(document.getElementById("md"), {
     theme: darkMode ? "xq-dark" : "xq-light",
-    mode: "markdown",
+    mode: { name: "yaml-frontmatter", base:"gfm" },
     lineWrapping: true
   })
   state.cm.on("cursorActivity", (cm) => {
