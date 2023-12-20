@@ -22,8 +22,17 @@
     "sidePanel"
   ],
   "host_permissions": [
-    "*://*/*"
+    "<all_urls>"
   ],
+  "background": {
+    "scripts": [
+      "/shared/lib/browser-polyfill.js",
+      "/shared/options.js",
+      "/shared/context-menus.js",
+      "/background/bg-setup.js"
+    ],
+    "service_worker": "/background/bg-setup.js"
+  },
   "side_panel": {
     "default_path": "popup/popup.html"
   },

@@ -172,3 +172,39 @@ async function createMenus() {
     }, () => { });
   }
 }
+
+async function copyMarkdownLink(url, text, options) {
+  if(!text) text = document.activeElement.innerText
+
+  let link = `<${url}>`
+  console.log(link)
+  console.log(options.linkStyle)
+  switch (options.linkStyle) {
+    case "inlined": link = `[${text}](${url})`; break
+    case "referenced": switch (options.linkReferenceStyle) {
+      case "full": link = `[${text}][1]\n[1]: ${url}`; break
+      case "collapsed": link = `[${text}][]\n[${text}]: ${url}`; break
+      case "shortcut": link = `[${text}]\n[${text}]: ${url}`; break
+    } break
+    case "stripLinks": link = text; break
+  }
+
+  console.log(link)
+  navigator.clipboard.writeText(link)
+}
+
+async function menuListener(info, tab) {
+  console.log("clicked a menu item", info.menuItemId)
+  console.log(info, tab)
+
+  switch (info.menuItemId) {
+    case "copy-markdown-link":
+      const url = info.linkUrl
+      let text = info.linkText || null
+      await browser.scripting.executeScript({
+        target: { tabId: tab.id, allFrames: true },
+        func: copyMarkdownLink,
+        args: [url, text, await getOptions()]
+      })
+  }
+}
