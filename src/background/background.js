@@ -19,7 +19,11 @@ function turndown(content, options, article) {
 
   var turndownService = new TurndownService(options);
 
+  console.log('console message from background.js');
+
+  turndownService.use(turndownPluginTorchlight.torchlight)
   turndownService.use(turndownPluginGfm.gfm)
+
 
   turndownService.keep(['iframe', 'sub', 'sup', 'u', 'ins', 'del', 'small', 'big']);
 

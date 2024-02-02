@@ -12,6 +12,7 @@ function turndown(content, options, article) {
 
   var turndownService = new TurndownService(options);
 
+  turndownService.use(turndownPluginTorchlight.torchlight)
   turndownService.use(turndownPluginGfm.gfm)
 
   turndownService.keep(['iframe', 'sub', 'sup', 'u', 'ins', 'del', 'small', 'big']);
